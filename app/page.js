@@ -6,7 +6,7 @@ export default function HomePage() {
   const [showJumpscare, setShowJumpscare] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const hasUnsavedChanges = useRef(false);
-  const audioRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
@@ -29,9 +29,9 @@ export default function HomePage() {
       
     }
 
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
     }
 
   }
@@ -55,8 +55,7 @@ export default function HomePage() {
       </form>
 
       <div className={showJumpscare ? 'jumpscare visible' : 'jumpscare'} role="dialog" aria-label="Jumpscare" aria-hidden={!showJumpscare}>
-        <img src="/jumpscare.jpg" alt="" />
-        <audio ref={audioRef} src="/jumpscare.mp3" preload="auto" />
+        <video ref={videoRef} src="/cdn/video.mp4" autoPlay playsInline preload="auto" />
         {showUnsavedWarning && (
           <div className="unsaved-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-title">
             <h2 id="unsaved-title">Unsaved changes</h2>
