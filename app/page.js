@@ -21,6 +21,7 @@ export default function HomePage() {
   }, []);
 
   async function triggerJumpscare() {
+    hasUnsavedChanges.current = true;
     setShowJumpscare(true);
 
     try {
