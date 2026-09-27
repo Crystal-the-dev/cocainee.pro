@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { parseGIF, decompressFrames } from 'gifuct-js';
-import { gifBase64 } from '@/lib/gif';
+import { gifSrc } from '@/lib/gif';
 
 const CONSOLE_DISPLAY_WIDTH = 800;
 const CONSOLE_DISPLAY_HEIGHT = 800;
@@ -27,30 +27,18 @@ export default function HomePage() {
 
     const playGifInConsole = async () => {
       try {
-        let buffer;
-
-        if (gifBase64.startsWith('data:')) {
-          const base64 = gifBase64.slice(gifBase64.indexOf(',') + 1).replace(/\s+/g, '');
-          const binary = atob(base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i += 1) {
-            bytes[i] = binary.charCodeAt(i);
-          }
-          buffer = bytes.buffer;
-        } else {
-          const response = await fetch(gifBase64);
-          if (!response.ok) {
-            throw new Error(`GIF konnte nicht geladen werden: ${response.status}`);
-          }
-          buffer = await response.arrayBuffer();
+        const response = await fetch(gifSrc);
+        if (!response.ok) {
+          throw new Error(`Failed to load GIF: ${response.status}`);
         }
+        const buffer = await response.arrayBuffer();
 
         const gif = parseGIF(buffer);
         const frames = decompressFrames(gif, true);
 
         if (!frames.length) return;
 
-        // Canvas auf 800x800px setzen für richtige Skalierung
+        // Size the canvas so the 360x360 GIF scales up to 800x800
         const canvas = document.createElement('canvas');
         canvas.width = CONSOLE_DISPLAY_WIDTH;
         canvas.height = CONSOLE_DISPLAY_HEIGHT;
@@ -58,42 +46,41 @@ export default function HomePage() {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, CONSOLE_DISPLAY_WIDTH, CONSOLE_DISPLAY_HEIGHT);
 
-        while (!stopped) {
-          for (const frame of frames) {
-            if (stopped) break;
+        for (const frame of frames) {
+          if (stopped) break;
 
-            const imageData = new ImageData(
-              new Uint8ClampedArray(frame.patch),
-              frame.dims.width,
-              frame.dims.height
-            );
+          const imageData = new ImageData(
+            new Uint8ClampedArray(frame.patch),
+            frame.dims.width,
+            frame.dims.height
+          );
 
-            // Temp Canvas für Frame-Daten
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = frame.dims.width;
-            tempCanvas.height = frame.dims.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.putImageData(imageData, 0, 0);
+          // Offscreen canvas holding the raw frame pixels
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = frame.dims.width;
+          tempCanvas.height = frame.dims.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.putImageData(imageData, 0, 0);
 
-            // Alten Canvas clearen und Frame skaliert zeichnen
-            ctx.clearRect(0, 0, CONSOLE_DISPLAY_WIDTH, CONSOLE_DISPLAY_HEIGHT);
-            ctx.drawImage(
-              tempCanvas,
-              frame.dims.left,
-              frame.dims.top,
-              frame.dims.width,
-              frame.dims.height,
-              0,
-              0,
-              CONSOLE_DISPLAY_WIDTH,
-              CONSOLE_DISPLAY_HEIGHT
-            );
+          // Clear the previous frame and draw the new one scaled up
+          ctx.clearRect(0, 0, CONSOLE_DISPLAY_WIDTH, CONSOLE_DISPLAY_HEIGHT);
+          ctx.drawImage(
+            tempCanvas,
+            frame.dims.left,
+            frame.dims.top,
+            frame.dims.width,
+            frame.dims.height,
+            0,
+            0,
+            CONSOLE_DISPLAY_WIDTH,
+            CONSOLE_DISPLAY_HEIGHT
+          );
 
-            const frameImage = canvas.toDataURL('image/png');
+          const frameImage = canvas.toDataURL('image/png');
 
-            console.log(
-              '%c ',
-              `
+          console.log(
+            '%c ',
+            `
                 display: inline-block;
                 width: ${CONSOLE_DISPLAY_WIDTH}px;
                 height: ${CONSOLE_DISPLAY_HEIGHT}px;
@@ -105,12 +92,11 @@ export default function HomePage() {
                 font-size: 1px;
                 line-height: 1px;
               `
-            );
+          );
 
-            await new Promise((resolve) => {
-              setTimeout(resolve, Math.max(Number(frame.delay || 10) * 10, 20));
-            });
-          }
+          await new Promise((resolve) => {
+            setTimeout(resolve, Math.max(Number(frame.delay || 10) * 10, 20));
+          });
         }
       } catch (error) {
         console.error('GIF error:', error);
