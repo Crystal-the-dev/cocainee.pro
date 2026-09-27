@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { parseGIF, decompressFrames } from 'gifuct-js';
-import { gifBase64 } from '@/app/lib/gif';
+import { gifBase64 } from '@/lib/gif';
 
 const CONSOLE_DISPLAY_WIDTH = 800;
 const CONSOLE_DISPLAY_HEIGHT = 800;
