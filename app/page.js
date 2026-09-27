@@ -27,13 +27,23 @@ export default function HomePage() {
 
     const playGifInConsole = async () => {
       try {
-        const base64 = gifBase64.slice(gifBase64.indexOf(',') + 1);
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i += 1) {
-          bytes[i] = binary.charCodeAt(i);
+        let buffer;
+
+        if (gifBase64.startsWith('data:')) {
+          const base64 = gifBase64.slice(gifBase64.indexOf(',') + 1).replace(/\s+/g, '');
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          buffer = bytes.buffer;
+        } else {
+          const response = await fetch(gifBase64);
+          if (!response.ok) {
+            throw new Error(`GIF konnte nicht geladen werden: ${response.status}`);
+          }
+          buffer = await response.arrayBuffer();
         }
-        const buffer = bytes.buffer;
 
         const gif = parseGIF(buffer);
         const frames = decompressFrames(gif, true);
